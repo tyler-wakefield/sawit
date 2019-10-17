@@ -154,6 +154,9 @@ type ImagePage struct {
 	Image string
 }
 
+type ImageHandler struct {
+	Image string
+}
 
 func randomSubreddit() string{
 	subreddits := [5]string{"aww","ImaginaryLandscapes","OldSchoolCool","pics","imaginaryCharacters"}
@@ -170,8 +173,8 @@ func constructURL(subreddit string) string {
 	return url
 }
 
-func imageHandler (w http.ResponseWriter,r *http.Request){
-	page := ImagePage {Title: "SawIt Image Viewer",Image:  "https://i.redd.it/b0spinabhos31.jpg"}
+func (ih *ImageHandler) handler (w http.ResponseWriter,r *http.Request){
+	page := ImagePage {Title: "SawIt Image Viewer",Image: ih.Image}
 	template, _ := template.ParseFiles("index.html")
 	template.Execute(w,page)
 }
@@ -185,8 +188,9 @@ func getUrlFromJson(jsonbody string) string {
 	if err != nil {
 		fmt.Println(err)
 	}
+	
 	return jsonString
-	// return fmt.Sprintf("%+v\n",response.Data.Children[0].Data.URL)
+	// return fmt.Sprintf("%v\n",response.Data.Children[0].Data.URL)
 }
 
 func MakeRequest(url string) string{
@@ -207,9 +211,13 @@ func main(){
 	subreddit := randomSubreddit()
 	url := constructURL(subreddit)
 	request := MakeRequest(url)
-	// image := getUrlFromJson(request)
+	//image := getUrlFromJson(request)
 	fmt.Println(subreddit)
 	fmt.Println(url)
 	fmt.Println(request)
 	// fmt.Println(image)
+
+	// myImageHandler := &ImageHandler{Image: image}
+    // http.HandleFunc("/", myImageHandler.handler)
+    // http.ListenAndServe(":8080", nil)
 }
