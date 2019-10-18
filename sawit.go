@@ -158,6 +158,8 @@ type ImageHandler struct {
 	Image string
 }
 
+const UserAgent = "User-Agent: script.sawit.viewer:v0.1 (by /u/thedevopsdojoblog)"
+
 func randomSubreddit() string{
 	subreddits := [5]string{"aww","ImaginaryLandscapes","OldSchoolCool","pics","imaginaryCharacters"}
 	rand.Seed(time.Now().UnixNano())
@@ -167,7 +169,7 @@ func randomSubreddit() string{
 }
 
 func constructURL(subreddit string) string {
-	baseUrl := "http://reddit.com"
+	baseUrl := "https://reddit.com"
 	
 	url := fmt.Sprintf("%s/r/%s/hot.json?limit=1",baseUrl,subreddit)
 	return url
@@ -180,7 +182,7 @@ func (ih *ImageHandler) handler (w http.ResponseWriter,r *http.Request){
 }
 
 func getUrlFromJson(jsonbody string) string {
-	jsonString := fmt.Sprintf("`%v`",jsonbody)
+	jsonString := fmt.Sprintf("%v",jsonbody)
 	jsonBytes := []byte(jsonString)
 
 	var response response
@@ -189,18 +191,29 @@ func getUrlFromJson(jsonbody string) string {
 		fmt.Println(err)
 	}
 	
-	return jsonString
-	// return fmt.Sprintf("%v\n",response.Data.Children[0].Data.URL)
+	// return jsonString
+	return fmt.Sprintf("%v\n",response.Data.Children[0].Data.URL)
 }
 
 func MakeRequest(url string) string{
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        fmt.Println(err)
+    }
+    req.Header.Set("User-Agent", UserAgent)
+
+	resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer resp.Body.Close()
+    if resp.StatusCode != http.StatusOK {
+        return string(resp.StatusCode)
+    }
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println("Error:")
 		log.Fatalln(err)
 	}
 
@@ -211,13 +224,13 @@ func main(){
 	subreddit := randomSubreddit()
 	url := constructURL(subreddit)
 	request := MakeRequest(url)
-	//image := getUrlFromJson(request)
+	image := getUrlFromJson(request)
 	fmt.Println(subreddit)
 	fmt.Println(url)
 	fmt.Println(request)
-	// fmt.Println(image)
+	fmt.Println(image)
 
-	// myImageHandler := &ImageHandler{Image: image}
-    // http.HandleFunc("/", myImageHandler.handler)
-    // http.ListenAndServe(":8080", nil)
+	myImageHandler := &ImageHandler{Image: image}
+    http.HandleFunc("/", myImageHandler.handler)
+    http.ListenAndServe(":8080", nil)
 }
